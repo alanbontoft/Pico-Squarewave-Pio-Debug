@@ -1,2 +1,2 @@
-# Pico-Blink-Pio-Debug
-Simple Pico program to demo pio by flashing LED
+# Pico-Squarewave-Pio-Debug
+Simple Pico program to create accurate squarewave using pio
