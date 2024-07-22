@@ -6,13 +6,23 @@
 
 .program piosquarewave
 
-; Repeatedly get one word of data from the TX FIFO, stalling when the FIFO is
-; empty. Write the 3 least significant bits to the OUT pin group.
+; Repeatedly get one word of data from the TX FIFO, and stores into X scratch for when FIFO is
+; empty. Write the 3 least significant bits to the SET pin group.
+; Creates a squarewave switching between 1MHz and 500kHz
 
-;.wrap_target
-    set pins, 3 [9]
-    set pins, 4 [9]
-;.wrap
+    set x, 0            ; initialise X scratch to 0 
+.wrap_target
+ start:
+    pull noblock        ; Pull from FIFO, value taken from X if FIFO empty
+    mov x, osr          ; copy OSR value into X
+    set pins, 3 [3]     ; Set pins, delay 3 extra cycles
+    jmp !x jp1          ; Skip nop if X is zero
+    nop [4]             ; 5 cycle delay
+ jp1:   
+    set pins, 4 [1]     ; Set pins, delay 1 extra cycle
+    jmp !x start        ; Skip nop if X is zero
+    nop [4]             ; 5 cycle delay
+.wrap
 
 % c-sdk {
 static inline void piosquarewave_program_init(PIO pio, uint sm, uint offset, uint pin, float div) {
@@ -21,17 +31,18 @@ static inline void piosquarewave_program_init(PIO pio, uint sm, uint offset, uin
 
     pio_sm_config c = piosquarewave_program_get_default_config(offset);
 
-    // Map the state machine's OUT pin group to 3 consecutive pins, starting at the `pin`
+    // Map the state machine's SET pin group to 3 consecutive pins, starting at the `pin`
     // parameter to this function.
     sm_config_set_set_pins(&c, pin, numPins);
 
-    // Set this pins' GPIO function (connect PIO to the pad)
+    // Set these pins' GPIO function (connect PIO to the pad)
     for (uint i=0; i < numPins; i++)
         pio_gpio_init(pio, pin + i);
     
     // Set the pin direction to output at the PIO
     pio_sm_set_consecutive_pindirs(pio, sm, pin, numPins, true);
 
+    // set clock divider according to div parameter
     sm_config_set_clkdiv(&c, div);
 
     // Load our configuration, and jump to the start of the program

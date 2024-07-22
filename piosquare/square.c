@@ -28,19 +28,24 @@ int main() {
     // helper function we included in our .pio file.
     uint sm = pio_claim_unused_sm(pio, true);
 
-    // calculate divider for 5MHz pio clock (system runs at 125MHz)
-    float div = clock_get_hz(clk_sys) / 5000000;
+    // calculate divider for 10MHz pio clock (system runs at 125MHz)
+    float div = (float)clock_get_hz(clk_sys) / 10000000.0;
     piosquarewave_program_init(pio, sm, offset, PICO_DEFAULT_LED_PIN, div);
 
     // The state machine is now running. Any value we push to its TX FIFO will
     // appear on the LED pin.  Pin 26 follows LED pin, Pin 27 is inverted
-    while (true) {
-        // Blink
-        // pio_sm_put_blocking(pio, sm, 0x00000003);
+
+    uint32_t data = 0;
+    while (true)
+    {
+        // Put data into FIFO
+        pio_sm_put_blocking(pio, sm, data);
+
+        // invert value
+        data = ~data;
+
+        //sleep
         sleep_ms(1000);
-        // Blonk
-        // pio_sm_put_blocking(pio, sm, 0x00000004);
-        // sleep_ms(50);
     }
 #endif
 }
